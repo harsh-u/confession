@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./generated_images:/app/generated_images
+      - ./backgrounds:/app/backgrounds
+      - ./confessions.db:/app/confessions.db
+    env_file:
+      - .env
+    restart: unless-stopped
+    
+  # Optional: PostgreSQL database
+  # Uncomment to use PostgreSQL instead of SQLite
+  # db:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: confession_db
+  #     POSTGRES_USER: confession_user
+  #     POSTGRES_PASSWORD: change_this_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   postgres_data:
