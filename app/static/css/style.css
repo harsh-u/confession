@@ -359,6 +359,56 @@ textarea::placeholder {
     opacity: 0.7;
 }
 
+.footer .instagram-link,
+.footer p.instagram-link {
+    margin-top: 0.5rem;
+}
+
+.footer .instagram-link a,
+.footer p.instagram-link a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer .instagram-link a:hover,
+.footer p.instagram-link a:hover {
+    text-decoration: underline;
+}
+
+.success-card .instagram-cta {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.success-card .instagram-cta a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.success-card .instagram-cta a:hover {
+    text-decoration: underline;
+}
+
+.success-actions .btn-instagram {
+    display: inline-block;
+    margin-left: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.success-actions .btn-instagram:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
 /* Animations */
 @keyframes fadeInDown {
     from {

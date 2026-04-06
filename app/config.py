@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     # Optional: ImgBB API key – upload images to ImgBB and use direct CDN URL for Instagram (avoids tunnel timeouts)
     imgbb_api_key: Optional[str] = None
 
+    # Admin UI (approval flow → SQS → Lambda)
+    admin_password: Optional[str] = None  # Required for /admin access
+    sqs_queue_url: Optional[str] = None  # SQS queue URL for approved posts (Lambda consumes)
+    aws_region: str = "us-east-1"
+
     # Application
     max_confession_length: int = 500
     rate_limit_per_hour: int = 10

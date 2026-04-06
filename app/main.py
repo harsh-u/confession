@@ -12,6 +12,7 @@ from fastapi.exceptions import HTTPException
 from app.config import settings
 from app.database import init_db
 from app.routes import confession_router
+from app.routes.admin import router as admin_router
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +48,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 # Include routers
 app.include_router(confession_router)
+app.include_router(admin_router)
 
 
 @app.get("/generated_images/{path:path}")

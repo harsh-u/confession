@@ -1,0 +1,71 @@
+{
+  "family": "beconversive-confession",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/ecsTaskRole-beconversive",
+  "volumes": [
+    {
+      "name": "generated-images",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "<EFS_FILE_SYSTEM_ID>",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "<EFS_ACCESS_POINT_ID_GENERATED_IMAGES>",
+          "iam": "ENABLED"
+        }
+      }
+    },
+    {
+      "name": "data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "<EFS_FILE_SYSTEM_ID>",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "<EFS_ACCESS_POINT_ID_DATA>",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "web",
+      "image": "<ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/beconversive-confession:latest",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 8000, "protocol": "tcp" }
+      ],
+      "mountPoints": [
+        { "sourceVolume": "generated-images", "containerPath": "/app/generated_images", "readOnly": false },
+        { "sourceVolume": "data", "containerPath": "/app/data", "readOnly": false }
+      ],
+      "environment": [
+        { "name": "PUBLIC_BASE_URL", "value": "https://confession.yourdomain.com" },
+        { "name": "SQS_QUEUE_URL", "value": "https://sqs.us-east-1.amazonaws.com/<ACCOUNT_ID>/confession-approval-queue" },
+        { "name": "AWS_REGION", "value": "us-east-1" },
+        { "name": "DATABASE_URL", "value": "sqlite:////app/data/confessions.db" }
+      ],
+      "secrets": [
+        { "name": "ADMIN_PASSWORD", "valueFrom": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:beconversive-confession/app:ADMIN_PASSWORD::" },
+        { "name": "SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:beconversive-confession/app:SECRET_KEY::" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/beconversive-confession",
+          "awslogs-region": "us-east-1"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 2,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

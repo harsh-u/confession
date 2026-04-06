@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin – BeConversive Confession</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .admin-header h1 { font-family: 'Playfair Display', serif; font-size: 1.75rem; }
+        .admin-card { background: var(--surface); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 1rem; display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+        .admin-card .thumb { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; flex-shrink: 0; }
+        .admin-card .body { flex: 1; min-width: 200px; }
+        .admin-card .meta { color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem; }
+        .admin-card .actions { margin-top: 0.75rem; }
+        .admin-card.queued { opacity: 0.7; }
+        .admin-card.queued .btn-approve { display: none; }
+        .login-form { max-width: 360px; margin: 2rem auto; }
+        .login-form input { width: 100%; padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid var(--surface-light); background: var(--surface); color: var(--text-primary); }
+        .login-form button { width: 100%; }
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="background-gradient"></div>
+    <div class="container">
+        {% if not logged_in %}
+        <header class="header">
+            <h1 class="logo">BeConversive</h1>
+            <p class="tagline">Admin</p>
+        </header>
+        <div class="login-form">
+            <form method="post" action="/admin/login" class="confession-card" style="padding: 2rem;">
+                <h2 style="margin-bottom: 1rem;">Admin login</h2>
+                <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
+                <button type="submit" class="btn btn-primary">Log in</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="admin-header">
+            <h1 class="logo">Admin – Pending confessions</h1>
+            <form method="post" action="/admin/logout" style="margin: 0;">
+                <button type="submit" class="btn" style="background: var(--surface-light); color: var(--text-primary);">Log out</button>
+            </form>
+        </div>
+        <div id="pending-list"></div>
+        <div id="empty-state" class="empty-state" style="display: none;">No pending confessions.</div>
+        <div id="error" class="empty-state" style="color: var(--error); display: none;"></div>
+        {% endif %}
+    </div>
+    {% if logged_in %}
+    <script>
+        (function() {
+            const listEl = document.getElementById('pending-list');
+            const emptyEl = document.getElementById('empty-state');
+            const errEl = document.getElementById('error');
+
+            function imageUrl(imagePath) {
+                if (!imagePath) return '';
+                const name = imagePath.split(/[/\\]/).pop();
+                return '/generated_images/' + encodeURIComponent(name);
+            }
+
+            function render(items) {
+                if (items.length === 0) {
+                    listEl.innerHTML = '';
+                    emptyEl.style.display = 'block';
+                    errEl.style.display = 'none';
+                    return;
+                }
+                emptyEl.style.display = 'none';
+                errEl.style.display = 'none';
+                listEl.innerHTML = items.map(function(c) {
+                    const date = c.created_at ? new Date(c.created_at).toLocaleString() : '';
+                    const queued = c.queued;
+                    return '<div class="admin-card' + (queued ? ' queued' : '') + '" data-id="' + c.id + '">' +
+                        '<img class="thumb" src="' + imageUrl(c.image_path) + '" alt="">' +
+                        '<div class="body">' +
+                        '<div class="confession-text">' + escapeHtml(c.text) + '</div>' +
+                        '<div class="meta">' + escapeHtml(date) + '</div>' +
+                        (c.caption ? '<div class="meta">Caption: ' + escapeHtml(c.caption) + '</div>' : '') +
+                        '<div class="actions">' +
+                        (queued ? '<span class="meta">Queued for Instagram</span>' : '<button type="button" class="btn btn-primary btn-approve" data-id="' + c.id + '">Approve</button>') +
+                        '</div></div></div>';
+                }).join('');
+            }
+
+            function escapeHtml(s) {
+                const div = document.createElement('div');
+                div.textContent = s;
+                return div.innerHTML;
+            }
+
+            function load() {
+                fetch('/admin/api/pending', { credentials: 'same-origin' })
+                    .then(function(r) {
+                        if (!r.ok) throw new Error('Failed to load pending');
+                        return r.json();
+                    })
+                    .then(function(data) {
+                        render(data.map(function(c) { return Object.assign({}, c, { queued: false }); }));
+                    })
+                    .catch(function(e) {
+                        listEl.innerHTML = '';
+                        emptyEl.style.display = 'none';
+                        errEl.textContent = e.message || 'Error loading list';
+                        errEl.style.display = 'block';
+                    });
+            }
+
+            listEl.addEventListener('click', function(e) {
+                const btn = e.target.closest('.btn-approve');
+                if (!btn) return;
+                const id = btn.getAttribute('data-id');
+                btn.disabled = true;
+                fetch('/admin/api/approve/' + id, { method: 'POST', credentials: 'same-origin' })
+                    .then(function(r) {
+                        if (!r.ok) return r.json().then(function(j) { throw new Error(j.detail || 'Approve failed'); });
+                        return r.json();
+                    })
+                    .then(function() {
+                        var card = listEl.querySelector('[data-id="' + id + '"]');
+                        if (card) {
+                            card.classList.add('queued');
+                            var actions = card.querySelector('.actions');
+                            if (actions) { actions.innerHTML = '<span class="meta">Queued for Instagram</span>'; }
+                        }
+                    })
+                    .catch(function(err) {
+                        btn.disabled = false;
+                        alert(err.message || 'Approve failed');
+                    });
+            });
+
+            load();
+        })();
+    </script>
+    {% endif %}
+</body>
+</html>

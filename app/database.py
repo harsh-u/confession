@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
@@ -25,6 +25,21 @@ def get_db():
         db.close()
 
 
+def _ensure_caption_column():
+    """Add caption column to confessions if missing (for existing DBs)."""
+    if "sqlite" not in settings.database_url:
+        return
+    with engine.connect() as conn:
+        r = conn.execute(text("PRAGMA table_info(confessions)"))
+        rows = r.fetchall()
+        # sqlite returns (cid, name, type, notnull, default, pk)
+        names = [row[1] for row in rows]
+        if "caption" not in names:
+            conn.execute(text("ALTER TABLE confessions ADD COLUMN caption VARCHAR(1000)"))
+            conn.commit()
+
+
 def init_db():
-    """Initialize database tables"""
+    """Initialize database tables and add any missing columns."""
     Base.metadata.create_all(bind=engine)
+    _ensure_caption_column()

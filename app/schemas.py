@@ -1,12 +1,19 @@
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from typing import Optional
+
+from app.config import settings
 from app.models import PostStatus
 
 
 class ConfessionCreate(BaseModel):
     """Schema for creating a confession"""
-    text: str = Field(..., min_length=1, max_length=500, description="Confession text")
+    text: str = Field(
+        ...,
+        min_length=1,
+        max_length=settings.max_confession_length,
+        description="Confession text",
+    )
     
     @validator('text')
     def validate_text(cls, v):

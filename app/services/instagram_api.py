@@ -84,6 +84,7 @@ class InstagramAPI:
             InstagramAPIError: If request fails
         """
         try:
+            print(f'method={method}  url={url}  params={params}  json=data  headers={headers}')
             response = requests.request(
                 method=method,
                 url=url,
@@ -179,10 +180,10 @@ class InstagramAPI:
         """
         url = f"{self.base_url}/{self.user_id}/media"
         
-        # API expects JSON body with media_type and Bearer token (see Graph API reference)
+        # For image publishing, the API expects the public image URL and caption.
+        # media_type is not required here and can cause the request to be rejected.
         body = {
             "image_url": image_path,
-            "media_type": "IMAGE",
             "caption": caption,
         }
         headers = {
