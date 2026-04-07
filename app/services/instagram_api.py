@@ -184,6 +184,7 @@ class InstagramAPI:
         # media_type is not required here and can cause the request to be rejected.
         body = {
             "image_url": image_path,
+            "media_type": "IMAGE",
             "caption": caption,
         }
         headers = {

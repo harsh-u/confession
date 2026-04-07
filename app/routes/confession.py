@@ -42,6 +42,41 @@ def check_rate_limit(db: Session, ip_hash: str) -> bool:
 
     return recent_submissions < settings.rate_limit_per_hour
 
+import boto3
+import os
+from botocore.exceptions import NoCredentialsError
+
+def get_s3_client():
+    """Create S3 client using settings"""
+    return boto3.client(
+        "s3",
+        aws_access_key_id=settings.aws_access_key_id,
+        aws_secret_access_key=settings.aws_secret_access_key,
+        region_name=settings.aws_region
+    )
+
+def upload_to_s3(file_path: str, object_name: str = None) -> str:
+    try:
+        s3_client = get_s3_client()
+        if object_name is None:
+            object_name = os.path.basename(file_path)
+
+        s3_client.upload_file(
+            file_path,
+            settings.s3_bucket_name,
+            object_name,
+            ExtraArgs={
+                "ContentType": "image/png",
+                "ACL": "public-read"
+            }
+        )
+
+        url = f"https://{settings.s3_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{object_name}"
+        return url
+
+    except NoCredentialsError:
+        raise Exception("AWS credentials not configured")
+
 
 @router.post("/api/submit", response_model=SubmissionResponse)
 async def submit_confession(
@@ -77,6 +112,12 @@ async def submit_confession(
         # Generate image
         logger.info("Generating image for confession")
         image_path = image_generator.generate_image(confession.text)
+
+        s3_url = upload_to_s3(image_path)
+
+        # ✅ Delete local file
+        if os.path.exists(image_path):
+            os.remove(image_path)
         
         # Generate caption (stored for admin approval → SQS → Lambda)
         caption = generate_caption()
@@ -84,7 +125,7 @@ async def submit_confession(
         # Create database entry (pending admin approval; no Instagram post here)
         db_confession = Confession(
             text=confession.text,
-            image_path=image_path,
+            image_path=s3_url,
             caption=caption,
             posted_status=PostStatus.PENDING,
             ip_hash=ip_hash

@@ -19,7 +19,10 @@ class Settings(BaseSettings):
     # Admin UI (approval flow → SQS → Lambda)
     admin_password: Optional[str] = None  # Required for /admin access
     sqs_queue_url: Optional[str] = None  # SQS queue URL for approved posts (Lambda consumes)
-    aws_region: str = "us-east-1"
+    aws_region: str = "eu-north-1"
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    s3_bucket_name: str = "soothing-playlist"
 
     # Application
     max_confession_length: int = 500
