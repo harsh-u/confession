@@ -131,9 +131,14 @@ async def admin_approve(
         )
 
     caption = confession.caption or ""
-    base = (settings.public_base_url or "").strip().rstrip("/")
-    path_segment = os.path.basename(confession.image_path)
-    image_url = f"{base}/generated_images/{path_segment}" if base else None
+    
+    # Use the stored image_path directly if it's an S3 URL (starts with http)
+    if confession.image_path and confession.image_path.startswith("http"):
+        image_url = confession.image_path
+    else:
+        base = (settings.public_base_url or "").strip().rstrip("/")
+        path_segment = os.path.basename(confession.image_path)
+        image_url = f"{base}/generated_images/{path_segment}" if base else None
 
     if settings.sqs_queue_url:
         if not image_url:

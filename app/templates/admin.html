@@ -61,6 +61,7 @@
 
             function imageUrl(imagePath) {
                 if (!imagePath) return '';
+                if (imagePath.startsWith('http')) return imagePath;
                 const name = imagePath.split(/[/\\]/).pop();
                 return '/generated_images/' + encodeURIComponent(name);
             }
